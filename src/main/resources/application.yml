@@ -1,0 +1,24 @@
+management:
+  server:
+    port: 8080 # 서버 포트를 8080으로 변경 (기본값도 8080)
+  info:
+    java:
+      enabled: true # actuator에 java 정보 노출
+    os:
+      enabled: true # actuator에 os 정보 노출
+    env:
+      enabled: true # actuator에 env 정보 노출 (환경변수)
+  endpoint:
+    shutdown:
+      enabled: true   # actuator에 shutdown endpoint 노출 ( 서버를 POST 링크로 종료 가능 )
+    health:
+      show-components: always # actuator에 health endpoint 노출
+  endpoints:
+    web:
+      exposure:
+        include: "*" # actuator에 모든 endpoint 노출
+
+server:
+  tomcat:
+    mbeanregistry:
+      enabled: true # actuator에 mbean 정보 노출
