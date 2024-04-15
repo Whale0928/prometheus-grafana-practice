@@ -50,4 +50,10 @@ public class TrafficController {
 		// JDBC close를 하지 않음
 		return "jdbc ok";
 	}
+	
+	@GetMapping("/error-lon")
+	public String error() {
+		log.error("error");
+		return "error";
+	}
 }
