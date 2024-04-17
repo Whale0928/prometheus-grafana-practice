@@ -5,10 +5,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class ActuatorController {
-	
-	@GetMapping
-	public String hello() {
-		return "Hello Actuator!";
-	}
-	
+
+    @GetMapping
+    public String hello() {
+        return "Hello Actuator!";
+    }
+
+    @GetMapping("/health")
+    public String health() {
+        return "OK";
+    }
 }

@@ -17,6 +17,8 @@ management:
     web:
       exposure:
         include: "*" # actuator에 모든 endpoint 노출
+        # /app/health 활성화
+
 
 server:
   tomcat:
