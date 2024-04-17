@@ -14,7 +14,7 @@ env:
   # AWS Region
   AWS_REGION: ap-northeast-2
   # 도커 컨테이너명
-  CONTAINER_NAME: example-application
+  CONTAINER_NAME: example-container-01
   # ECR 리포지토리명
   ECR_REPOSITORY: develop-example-application
   # ECS 클러스터명
