@@ -1,0 +1,67 @@
+{
+  "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:563393931951:task-definition/develop-example-application-task:1",
+  "containerDefinitions": [
+    {
+      "name": "example-application",
+      "image": "563393931951.dkr.ecr.ap-northeast-2.amazonaws.com/develop-example-application",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "name": "example-application-8080-tcp",
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "environment": [],
+      "environmentFiles": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "ulimits": [],
+      "systemControls": []
+    }
+  ],
+  "family": "develop-example-application-task",
+  "taskRoleArn": "arn:aws:iam::563393931951:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::563393931951:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "revision": 1,
+  "volumes": [],
+  "status": "ACTIVE",
+  "requiresAttributes": [
+    {
+      "name": "com.amazonaws.ecs.capability.ecr-auth"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.task-iam-role"
+    },
+    {
+      "name": "ecs.capability.execution-role-ecr-pull"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+    },
+    {
+      "name": "ecs.capability.task-eni"
+    }
+  ],
+  "placementConstraints": [],
+  "compatibilities": [
+    "EC2",
+    "FARGATE"
+  ],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "3072",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "registeredAt": "2024-04-17T04:54:32.076Z",
+  "registeredBy": "arn:aws:iam::563393931951:user/bottlenote-admin-IAM",
+  "tags": []
+}
