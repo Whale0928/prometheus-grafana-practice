@@ -1,98 +1,80 @@
-# 이 워크플로우는 Amazon ECR에 새 컨테이너 이미지를 빌드하고 푸시하며,
-# "main" 브랜치에 푸시될 때 Amazon ECS에 새 태스크 정의를 배포합니다.
-#
-# 이 워크플로우를 사용하려면 다음 설정 단계를 완료해야 합니다:
-#
-# 1. 이미지를 저장할 ECR 저장소를 생성하세요.
-#    예: `aws ecr create-repository --repository-name my-ecr-repo --region us-east-2`.
-#    아래 워크플로우에서 `ECR_REPOSITORY` 환경 변수의 값을 귀하의 저장소 이름으로,
-#    `AWS_REGION` 환경 변수의 값을 귀하의 저장소 지역으로 교체하세요.
-#
-# 2. ECS 태스크 정의, ECS 클러스터, 및 ECS 서비스를 생성하세요.
-#    예: ECS 콘솔의 Getting Started 가이드를 따르세요:
-#      https://us-east-2.console.aws.amazon.com/ecs/home?region=us-east-2#/firstRun
-#    아래 워크플로우에서 `ECS_SERVICE` 환경 변수의 값을 귀하가 설정한 Amazon ECS 서비스 이름으로,
-#    `ECS_CLUSTER` 환경 변수의 값을 귀하가 설정한 클러스터 이름으로 교체하세요.
-#
-# 3. 귀하의 ECS 태스크 정의를 JSON 파일로 저장소에 저장하세요.
-#    형식은 `aws ecs register-task-definition --generate-cli-skeleton`의 출력을 따르세요.
-#    아래 워크플로우에서 `ECS_TASK_DEFINITION` 환경 변수의 값을 JSON 파일 경로로,
-#    `CONTAINER_NAME` 환경 변수의 값을 태스크 정의의 `containerDefinitions` 섹션에 있는 컨테이너 이름으로 교체하세요.
-#
-# 4. IAM 사용자 액세스 키를 GitHub Actions 비밀에 `AWS_ACCESS_KEY_ID` 및 `AWS_SECRET_ACCESS_KEY`로 저장하세요.
-#    아래 사용된 각 액션의 문서에서 이 IAM 사용자에 대한 권장 IAM 정책과
-#    액세스 키 자격증명을 다루는 모범 사례를 확인하세요.
-
-
-# 배포 순서 요약
-# 1) github action에 체크아웃
-# 2) aws 접근권한 확인
-# 3) ECR 로그인
-# 4) docker image build & ECR에 push
-# 5) ECS Task에 push한 image로 채우는 작업
-# 6) 새로 정의한 ECS Task 배포
-
-
-name: Amazon ECS에 배포
+name: Deploy to Amazon ECS
 
 on:
   push:
-    branches: [ "main" ]
-
-env:
-  AWS_REGION: MY_AWS_REGION                   # AWS 선호 지역으로 설정하세요, 예: us-west-1
-  ECR_REPOSITORY: MY_ECR_REPOSITORY           # Amazon ECR 저장소 이름으로 설정하세요
-  ECS_SERVICE: MY_ECS_SERVICE                 # Amazon ECS 서비스 이름으로 설정하세요
-  ECS_CLUSTER: MY_ECS_CLUSTER                 # Amazon ECS 클러스터 이름으로 설정하세요
-  ECS_TASK_DEFINITION: MY_ECS_TASK_DEFINITION # Amazon ECS 태스크 정의 파일 경로로 설정하세요, 예: .aws/task-definition.json
-  CONTAINER_NAME: MY_CONTAINER_NAME           # 태스크 정의의 containerDefinitions 섹션에 있는 컨테이너 이름으로 설정하세요
+    branches: [ "main" ] # main 브랜치에서만 진행
 
 permissions:
-  contents: read
+  contents: read # 코드를 읽기만 가능하도록 설정
+
+# 환경변수 설정
+env:
+  # Spring Boot Active Profile
+  # ACTIVE_PROFILE: ${{ github.ref == 'refs/heads/main' && '' || 'develop' }}
+  # AWS Region
+  AWS_REGION: ap-northeast-2
+  # 도커 컨테이너명
+  CONTAINER_NAME: example-application
+  # ECR 리포지토리명
+  ECR_REPOSITORY: develop-example-application
+  # ECS 클러스터명
+  ECS_CLUSTER: develop-example-application
+  # ECS 서비스명
+  ECS_SERVICE: develop-example-application
+  # ECS Task definition 파일명
+  ECS_TASK_DEFINITION: task-definition-develop.json
 
 jobs:
-  deploy:
-    name: 배포
+  job:
+    name: Build & Deploy
     runs-on: ubuntu-latest
     environment: production
-
     steps:
+      # 체크아웃
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: AWS 자격증명 구성
+      # JDK 설정
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      # Gradle clean build
+      - name: Build with Gradle
+        uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
+        with:
+          arguments: clean build
+      # AWS 자격 인증 설정
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Amazon ECR 로그인
+      # ECR 로그인
+      - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
-      - name: 이미지 빌드, 태그 지정 및 Amazon ECR로 푸시
+      # ECR에 도커 이미지 Push
+      - name: Push docker image to ECR
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: latest
         run: |
-          # Docker 컨테이너를 빌드하고
-          # ECR로 푸시하여
-          # ECS로 배포할 수 있게 합니다.
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
-      - name: Amazon ECS 태스크 정의에 새 이미지 ID 적용
+      # ECS Task 정의
+      - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: ${{ env.ECS_TASK_DEFINITION }}
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.build-image.outputs.image }}
-
-      - name: Amazon ECS 태스크 정의 배포
+      # ECS Task Push
+      - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
